@@ -23,9 +23,9 @@ try{
  let button=render();assert.equal(button.props.disabled,true);
  const cleanup=effects.map(fn=>fn());
  button=await settle();assert.equal(button.props.disabled,false);assert.equal(button.props['aria-pressed'],initial.enabled);
- await button.props.onClick();button=render();assert.equal(button.props['aria-pressed'],!initial.enabled);assert.equal(button.props.disabled,false);
+ button.props.onClick();assert.equal(render().props.disabled,false);button=await settle();assert.equal(button.props['aria-pressed'],!initial.enabled);assert.equal(button.props.disabled,false);
  assert.equal((await(await fetch(endpoint)).json()).enabled,!initial.enabled);
- await button.props.onClick();button=render();assert.equal(button.props['aria-pressed'],initial.enabled);
+ button.props.onClick();assert.equal(render().props.disabled,false);button=await settle();assert.equal(button.props['aria-pressed'],initial.enabled);
  assert.equal((await(await fetch(endpoint)).json()).enabled,initial.enabled);
  const rail=render(false);assert.equal(rail.children[0],'📌');assert.equal(typeof rail.props['aria-label'],'string');
  cleanup.forEach(fn=>fn?.());assert.deepEqual(calls,['GET','POST','POST']);

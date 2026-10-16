@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { runNative } from '../lib/index.js';
+import { runNative, closeNative } from '../lib/index.js';
 const original = await runNative();
 console.log('Original:', original);
 try {
@@ -10,7 +10,9 @@ try {
   assert.equal((await runNative()).enabled, false);
   console.log('Verified native WS_EX_TOPMOST disabled');
 } finally {
-  const restored = await runNative('set', original.enabled);
-  assert.equal(restored.enabled, original.enabled);
-  console.log('Restored original state:', restored);
+  try {
+    const restored = await runNative('set', original.enabled);
+    assert.equal(restored.enabled, original.enabled);
+    console.log('Restored original state:', restored);
+  } finally { closeNative(); }
 }
