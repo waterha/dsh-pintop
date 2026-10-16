@@ -16,7 +16,7 @@ const calls=[];
 const clientFetch=(url,opts)=>{calls.push(opts.method);return fetch(new URL(url,'http://127.0.0.1:19387/'),opts);};
 vm.runInNewContext(await readFile(new URL('../lib/client.js',import.meta.url),'utf8'),{window:{__ModuleLoader__:{load:x=>{module=x;}},addEventListener(){},removeEventListener(){}},fetch:clientFetch,AbortController,setTimeout,clearTimeout});
 const plugin=module.factory(id=>{assert.equal(id,'react');return React;});
-plugin.apply({slots:{inject(slot,fn){assert.equal(slot,'sidebar.footer.action');fn();},register(meta,fn){assert.equal(meta.id,'dsh-pintop');component=fn;}}});
+plugin.apply({effect:fn=>fn(),locale:{register:()=>()=>{}},slots:{inject(slot,fn){assert.equal(slot,'sidebar.footer.action');fn();},register(meta,fn){assert.equal(meta.id,'dsh-pintop');component=fn;}}});
 function render(wide=true){cursor=0;tree=component({wide});return tree.children[0];}
 async function settle(){for(let i=0;i<1000;i++){await new Promise(r=>setTimeout(r,100));if(cells[1]===false)return render();}throw Error('Client request did not settle');}
 try{

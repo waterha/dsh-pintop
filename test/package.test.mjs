@@ -38,8 +38,8 @@ test('client loader exports and footer slot contract', async () => {
   vm.runInNewContext(await readFile(new URL('lib/client.js', root), 'utf8'), { window: { __ModuleLoader__: { load: x => { loaded = x; } } } });
   assert.equal(loaded.id, 'dsh-pintop');
   const plugin = loaded.factory(id => { assert.equal(id, 'react'); return {}; });
-  assert.deepEqual(Array.from(plugin.inject), ['slots']);
+  assert.deepEqual(Array.from(plugin.inject), ['slots', 'locale']);
   let registered;
-  plugin.apply({ slots: { inject: (slot, fn) => { assert.equal(slot, 'sidebar.footer.action'); fn(); }, register: (meta, component) => { registered = { meta, component }; } } });
+  plugin.apply({ effect: fn => fn(), locale: { register: (ns, dict) => { assert.equal(ns, 'dsh-pintop'); assert.equal(dict.en.pin, 'Pin window'); assert.equal(dict.zh.pin, '窗口置顶'); return () => {}; } }, slots: { inject: (slot, fn) => { assert.equal(slot, 'sidebar.footer.action'); fn(); }, register: (meta, component) => { registered = { meta, component }; } } });
   assert.equal(registered.meta.id, 'dsh-pintop'); assert.equal(typeof registered.component, 'function');
 });
