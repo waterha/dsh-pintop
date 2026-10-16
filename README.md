@@ -1,40 +1,106 @@
 # dsh-pintop
 
-Standalone, dependency-free Windows plugin for DeepSeek Harness 0.2.0-rc.2 or newer. Adds a pin button to the left sidebar footer. The collapsed sidebar uses an icon with an accessible label; expanded mode shows 窗口置顶 / 取消置顶. State is read from the native WS_EX_TOPMOST bit on mount and throttled window focus. After the initial read, the button stays clickable while a request runs: rapid clicks update the desired state immediately and coalesce into the latest request. Older replies cannot overwrite newer intent. Failures are shown and roll back to the last confirmed state. No localStorage is used. Hover does not trigger native work or system title tooltips.
+**简体中文** | [English](README.en.md)
 
-## Install
+为 DeepSeek Harness 提供 Windows 窗口置顶功能的独立插件。按钮位于左侧边栏底部：展开时显示「窗口置顶 / 取消置顶」，收起时显示图钉图标，并保留无障碍标签。
 
-Use the running application's official Plugins manager and install the local package spec:
+## 功能
 
+- 将整个 Harness 窗口置顶，再次点击即可取消。
+- 支持连续点击：请求期间按钮保持可用，快速点击以最后一次选择为准，旧响应不会覆盖新选择。
+- 从 Windows 的 `WS_EX_TOPMOST` 标志读取真实状态；切换失败时显示错误，并恢复最近确认的状态。
+- 使用常驻 PowerShell 控制进程，避免每次点击都重新启动进程和编译原生调用。
+- 悬停不触发后台查询，也不弹出系统 `title` 提示；焦点变化时的状态查询有频率限制。
+- 不使用 localStorage，不修改窗口的位置、尺寸或焦点。
+
+## 环境要求
+
+- Windows。
+- DeepSeek Harness **0.2.0-rc.2 或更新版本**。
+- PowerShell 7，宿主进程的 `PATH` 中可找到 `pwsh.exe`。
+
+插件本身没有第三方运行时依赖，无需构建。
+
+## 安装
+
+将本仓库克隆到本地：
+
+```powershell
+git clone https://github.com/waterha/dsh-pintop.git
 ```
-file:C:/Sofware/122/dsh-pintop
+
+在正在运行的 Harness **插件管理器**中，使用本地包路径安装。将以下示例替换为你的实际克隆路径：
+
+```text
+file:C:/path/to/dsh-pintop
 ```
 
-The package includes a `cordis.patch.yml` bundle; the official plugin manager installs both the host and client. Reload/restart only as requested by the manager. This source directory does not modify the desktop profile or packaged application.
+插件包含 `cordis.patch.yml`，官方插件管理器会安装宿主与客户端两部分。桌面应用管理的 profile 应通过应用内插件管理器安装。
 
-For an externally managed CLI profile, the equivalent official CLI command is:
+对于自行管理的 CLI profile，可使用官方 CLI：
 
+```text
+dsh plugin --profile <profile> add file:C:/path/to/dsh-pintop
 ```
-dsh plugin --profile <profile> add file:C:/Sofware/122/dsh-pintop
+
+### 配置 Harness 路径
+
+当前默认可执行文件路径为：
+
+```text
+C:\Sofware\dsh\DeepSeek Harness.exe
 ```
 
-The application-owned desktop profile must use the application's plugin manager, not the external CLI writer.
+如果你的安装位置不同，请通过宿主配置 `executablePath` 或环境变量 `DSH_PINTOP_EXECUTABLE` 指定实际可执行文件的完整路径。例如，在启动 Harness 前设置：
 
-After upgrading from 0.1.0, fully quit and reopen Harness: the running host can retain the old plugin module even after reinstalling it. A page refresh alone does not replace that host module. The first native worker request pays the PowerShell/compiler startup cost; subsequent toggles reuse the worker. On the development machine, a real-window benchmark measured a 3.5-second cold start and 9–34 ms warm toggles (mean 14 ms); timings vary by machine.
-
-## Native target and API
-
-Default executable: `C:\Sofware\dsh\DeepSeek Harness.exe`. Host configuration `executablePath` or environment variable `DSH_PINTOP_EXECUTABLE` can override it with the full installed DeepSeek Harness executable path. Configuration is host-owned; browser requests cannot change it or provide process IDs/window handles. The native helper discovers processes by configured executable name, checks the exact executable path, and only accepts visible, unowned main windows. It rechecks the process identity and handle before and after modifying the window. If multiple main windows exist, it changes each; mixed read states fail explicitly.
-
-`GET /api/dsh-pintop` reads actual state. `POST /api/dsh-pintop` accepts only JSON `{ "enabled": true }` or `{ "enabled": false }`. Success is `{ "enabled": boolean, "windowCount": number }`, verified from the native bit. The API requires a loopback socket and loopback Host, rejects cross-site web origins, and permits the exact local desktop origin `dsh-app://app`. It does not enable CORS or trust forwarded addresses. Operations run serially through a lifecycle-managed persistent PowerShell worker. Win32 interop is compiled once per worker rather than on every click. Validated window targets are cached and checked again before use. The worker accepts only bounded JSON messages (not shell commands), has a bounded request queue and timeout, and is stopped when the plugin unloads. Errors return non-success HTTP status.
-
-Requires Windows and PowerShell 7 (`pwsh.exe` on the host PATH). Interop uses Add-Type, user32 SetWindowPos and GetWindowLongPtr/GetWindowLong with 32/64-bit compatibility. Existing position, size and focus are preserved. Pinning lasts for the current native window lifetime; no auto-repin or launch persistence is implemented.
-
-## Validate
-
+```powershell
+$env:DSH_PINTOP_EXECUTABLE = 'D:\Apps\DeepSeek Harness\DeepSeek Harness.exe'
 ```
+
+配置由宿主控制，浏览器请求不能修改路径，也不能传入进程 ID 或窗口句柄。
+
+### 升级与性能
+
+从 0.1.0 升级后，请**完全退出并重新打开 Harness**。即使重新安装了插件，当前宿主仍可能缓存旧模块；仅刷新页面不足以更新后台代码。
+
+首次请求需要启动 PowerShell 并编译 Win32 调用，后续切换复用同一进程。开发机的真实窗口测试中，首次启动约 3.5 秒，后续 10 次切换为 9–34 毫秒，平均约 14 毫秒；实际耗时取决于机器环境。
+
+置顶只对当前原生窗口的生命周期有效，尚未实现退出后记忆状态或启动时自动置顶。
+
+## 原生控制与 API
+
+原生实现使用 `Add-Type`、user32 `SetWindowPos` 和 `GetWindowLongPtr/GetWindowLong`，兼容 32/64 位调用。插件按配置的进程名称查找窗口，再验证完整可执行文件路径，仅处理可见、无所有者的主窗口。缓存的目标在使用时会重新验证。存在多个符合条件的主窗口时，会逐个切换；读取到不一致状态时明确报错。
+
+| 请求 | 作用 |
+| --- | --- |
+| `GET /api/dsh-pintop` | 读取真实置顶状态 |
+| `POST /api/dsh-pintop` | 设置状态，请求体为 `{"enabled": true}` 或 `{"enabled": false}` |
+
+成功响应示例：
+
+```json
+{"enabled": true, "windowCount": 1}
+```
+
+接口要求 loopback 来源连接与 loopback Host，拒绝跨站网页来源，允许精确的桌面来源 `dsh-app://app`。不启用 CORS，也不信任转发地址。原生操作串行执行，使用有大小限制的 JSON 消息、有界队列和超时；插件卸载时结束工作进程。失败返回非成功 HTTP 状态码。
+
+## 验证
+
+```powershell
 node --test test/*.test.mjs
 node test/native.mjs
 ```
 
-The native test reads the initial bit, enables and verifies it, disables and verifies it, and restores the initial state in a finally block. It requires an existing visible main window at the configured path. It temporarily changes the real desktop window. Package tests verify the manifest, native payload, browser loader/footer registration, invalid native parameters and request trust fence. No build or dependency installation is required.
+单元测试覆盖插件清单、原生文件、客户端加载与侧边栏注册、非法参数、来源校验、连续点击、旧响应处理、失败回退和焦点查询限流。
+
+原生测试需要已打开且可见的 Harness 主窗口：读取初始状态，验证开启与关闭，并在 `finally` 中恢复原状态。该测试会临时改变真实窗口的置顶状态。
+
+测量原生常驻进程的首次启动与连续切换耗时：
+
+```powershell
+node test/latency.mjs --native
+```
+
+## 许可证
+
+[MIT](LICENSE)

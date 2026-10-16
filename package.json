@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./lib/host.js",
   "exports": { ".": "./lib/host.js", "./client": "./lib/client.js", "./package.json": "./package.json" },
-  "files": ["lib", "native", "cordis.patch.yml", "README.md"],
+  "files": ["lib", "native", "cordis.patch.yml", "README.md", "README.en.md"],
   "scripts": { "test": "node --test test/*.test.mjs", "test:native": "node test/native.mjs" },
   "dsh": {
     "engines": { "dsh": ">=0.2.0-rc.2" },
