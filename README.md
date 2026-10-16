@@ -13,7 +13,7 @@
 
 方法二：
 ```powershell
-git clone https://github.com/waterha/dsh-pintop.git
+dsh plugin --profile web add dsh-pintop
 ```
 
 在正在运行的 Harness **插件管理器**中，使用本地包路径安装。将以下示例替换为你的实际克隆路径：
