@@ -1,5 +1,5 @@
 # dsh-pintop
-[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)<br>
 **简体中文** | [English](README.en.md)
 
 为 DeepSeek Harness 提供 Windows 窗口置顶功能的独立插件。按钮位于左侧边栏底部：展开时显示「窗口置顶 / 取消置顶」，收起时显示图钉图标，并保留无障碍标签。
